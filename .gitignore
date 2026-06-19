@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+*.pyo
+.javdb_progress.json
+javdb_results_*.csv
+javdb_results_*.json
