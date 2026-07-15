@@ -44,11 +44,23 @@ def parse_score_value(rating_str):
 async def search_code(browser, code: str) -> dict:
     result = {"code": code, "rating": None, "title": None, "url": None, "error": None}
     try:
+        if browser is None:
+            result["error"] = "浏览器未启动"
+            return result
+
         url = f"{SEARCH_URL}?q={code}&f=all"
         page = await browser.get(url)
+        if page is None:
+            result["error"] = "页面加载失败"
+            return result
+
         await page.sleep(4)
 
         html = await page.get_content()
+        if html is None:
+            result["error"] = "获取页面内容失败"
+            return result
+
         soup = BeautifulSoup(html, "html.parser")
 
         if "Just a moment" in html or "challenge" in html.lower():
@@ -222,15 +234,42 @@ def update_nfo_rating(nfo_path, score, rating_val, critic_rating):
 
 
 async def run_search(codes, on_result=None):
-    browser = await uc.start(
-        headless=False,
-        browser_args=[
-            "--proxy-server=%s" % PROXY,
-            "--disable-gpu",
-            "--no-sandbox",
-            "--disable-blink-features=AutomationControlled",
-        ],
-    )
+    browser = None
+    try:
+        print("  正在启动浏览器（使用代理 %s）..." % PROXY)
+        sys.stdout.flush()
+        browser = await uc.start(
+            headless=False,
+            browser_args=[
+                "--proxy-server=%s" % PROXY,
+                "--disable-gpu",
+                "--no-sandbox",
+                "--disable-blink-features=AutomationControlled",
+            ],
+        )
+    except Exception as e:
+        print("  浏览器启动失败: %s" % e)
+        print("  尝试不使用代理启动...")
+        sys.stdout.flush()
+        try:
+            browser = await uc.start(
+                headless=False,
+                browser_args=[
+                    "--disable-gpu",
+                    "--no-sandbox",
+                    "--disable-blink-features=AutomationControlled",
+                ],
+            )
+        except Exception as e2:
+            print("  浏览器启动失败: %s" % e2)
+            return []
+
+    if browser is None:
+        print("错误: 浏览器启动失败，请检查 Chrome 是否正确安装")
+        return []
+
+    print("  浏览器启动成功！")
+    sys.stdout.flush()
 
     results = []
     banned = False
@@ -279,16 +318,19 @@ async def run_search(codes, on_result=None):
                         break
                     elif cmd == "q":
                         print("  已停止查询。")
-                        browser.stop()
+                        if browser:
+                            try:
+                                browser.stop()
+                            except:
+                                pass
                         return results
                     else:
                         print("  无效输入，请输入 c 继续或 q 退出")
-                continue
             else:
                 print("  %-15s 触发Cloudflare验证，10秒后重试... (%d/3)" % (code, consecutive_cf))
                 sys.stdout.flush()
                 await asyncio.sleep(10)
-                continue
+            continue
 
         consecutive_cf = 0
         results.append(res)
@@ -338,7 +380,11 @@ async def run_search(codes, on_result=None):
                     break
                 elif cmd == "q":
                     print("  已停止查询。")
-                    browser.stop()
+                    if browser:
+                        try:
+                            browser.stop()
+                        except:
+                            pass
                     return results
                 else:
                     print("  无效输入，请输入 c 继续或 q 退出")
@@ -359,13 +405,19 @@ async def run_search(codes, on_result=None):
         if on_result:
             on_result(res, score)
 
+        i += 1
+
         if i < len(codes) - 1:
             delay = random.uniform(DELAY_MIN, DELAY_MAX)
             print("  等待 %.1f 秒后继续..." % delay)
             sys.stdout.flush()
             await asyncio.sleep(delay)
 
-    browser.stop()
+    if browser:
+        try:
+            browser.stop()
+        except:
+            pass
     return results
 
 

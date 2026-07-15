@@ -4,3 +4,9 @@ __pycache__/
 .javdb_progress.json
 javdb_results_*.csv
 javdb_results_*.json
+
+# large binaries / packaged archives
+mimo.exe
+*.exe
+javdb_tool_v1.0.zip
+*.zip
