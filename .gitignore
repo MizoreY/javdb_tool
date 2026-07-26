@@ -1,9 +1,14 @@
 __pycache__/
+.venv/
+.python/
 *.pyc
 *.pyo
 .javdb_progress.json
+.javdb_state.json
 javdb_results_*.csv
 javdb_results_*.json
+launcher.log
+*.nfo.bak
 
 # large binaries / packaged archives
 mimo.exe

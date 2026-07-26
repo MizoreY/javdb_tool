@@ -1,4 +1,4 @@
 # JavDB 番号评分刮削工具依赖
 # 安装：pip install -r requirements.txt
-nodriver>=0.34
-beautifulsoup4>=4.12
+nodriver==0.50.3
+beautifulsoup4==4.15.0
